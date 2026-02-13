@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Letter to God</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Great+Vibes&family=Indie+Flower&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            /* Colors */
+            --bg-color: #2c0e0e;
+            --bg-gradient: radial-gradient(circle at center, #5e0000 0%, #2a0000 100%);
+            --env-color: #8a0e0e;
+            /* Main envelope color */
+            --env-dark: #6e0000;
+            /* Darker shade for inside */
+            --env-flap: #9e1414;
+            /* Lighter for flap */
+            --paper-color: #f5e6d3;
+            --text-color: #2c0e0e;
+            --accent-gold: #d4af37;
+            --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.5);
+
+            /* Dimensions */
+            --env-width: min(90vw, 500px);
+            --env-height: min(60vw, 350px);
+            /* Aspect ratio ~ 1.4 */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--bg-gradient);
+            font-family: 'Cormorant Garamond', serif;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+        }
+
+        .envelope-wrapper {
+            position: relative;
+            width: var(--env-width);
+            height: var(--env-height);
+            transition: transform 0.6s ease-in-out;
+            z-index: 10;
+        }
+
+        /* 3D Envelope Structure */
+        .envelope {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: var(--env-dark);
+            /* Inside color */
+            box-shadow: var(--shadow-soft);
+            border-radius: 5px;
+        }
+
+        /* 
+           LAYERS (Bottom up):
+           1. Letter (starts inside)
+           2. Pocket (The front body)
+           3. Flap (The top fold)
+        */
+
+        /* POCKET: Using clip-path for perfect symmetry */
+        /* V-shape cutout at top: 0,0 -> 50,50 -> 100,0 -> 100,100 -> 0,100 */
+        .pocket {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--env-color);
+            clip-path: polygon(0 0, 50% 55%, 100% 0, 100% 100%, 0 100%);
+            z-index: 20;
+            /* Keep high */
+            pointer-events: none;
+            filter: drop-shadow(0 -2px 5px rgba(0, 0, 0, 0.2));
+        }
+
+        /* FLAP: Triangle pointing down */
+        /* 0,0 -> 100,0 -> 50,50 */
+        .flap {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Use full height for easier calculation, but clip it */
+            background: var(--env-flap);
+            clip-path: polygon(0 0, 100% 0, 50% 55%);
+            transform-origin: top;
+            z-index: 30;
+            /* Topmost initially */
+            transition: transform 0.8s ease-in-out, z-index 0.2s 0.4s;
+        }
+
+        .envelope-wrapper.open .flap {
+            transform: rotateX(180deg);
+            z-index: 1;
+            /* Drop behind everything */
+        }
+
+        .envelope-wrapper.open .pocket {
+            /* Also drop pocket z-index so letter can be viewed clearly? No, pocket needs to stay visual, but letter must go OVER it */
+            /* Actually, we keep pocket as is, but letter z-index jumps to 40 */
+        }
+
+        /* THE LETTER */
+        .letter {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            height: 85%;
+            background: var(--paper-color);
+            border-radius: 4px;
+            z-index: 5;
+            /* Inside initially (less than pocket=20, flap=30) */
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+
+            /* Animation transitions */
+            transition: transform 0.8s ease-in-out, top 0.8s ease-in-out, height 0.8s ease-in-out, width 0.8s ease-in-out, left 0.8s ease-in-out;
+        }
+
+        /* Decoration */
+        .letter::after {
+            content: '';
+            position: absolute;
+            top: 10px;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            border: 1px solid var(--accent-gold);
+            pointer-events: none;
+        }
+
+        /* Step 1: Letter exits envelope */
+        .envelope-wrapper.open .letter.ejected {
+            transform: translateX(-50%) translateY(-120%);
+            /* Slide UP out of pocket */
+            z-index: 40;
+            /* Now above Pocket(20) and Flap(30) */
+            transition-delay: 0.6s;
+            /* Wait for flap */
+        }
+
+        /* Step 2: Letter Centers on Viewport */
+        .letter.centered {
+            /* Break out of absolute positioning relative to envelope */
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+
+            /* Final Dimensions */
+            width: min(90vw, 550px);
+            height: min(80vh, 700px);
+            bottom: auto;
+            z-index: 100;
+            /* Highest */
+
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Content inside Letter */
+        .letter-content {
+            font-family: 'Indie Flower', cursive;
+            /* Doodle style font */
+            font-size: 1.4rem;
+            line-height: 1.6;
+            color: var(--text-color);
+            opacity: 0;
+            height: 100%;
+            overflow-y: auto;
+            margin-top: 10px;
+
+            /* Hide scrollbar visually but allow scroll */
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-gold) transparent;
+        }
+
+        .letter.centered .letter-content {
+            opacity: 1;
+            transition: opacity 1s ease 1s;
+            /* Delay for text */
+        }
+
+        /* Controls / Inputs */
+        .input-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 50;
+            /* Above Flap(30) */
+            text-align: center;
+            width: 100%;
+            transition: opacity 0.5s ease;
+        }
+
+        .input-container.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .label-from {
+            color: var(--accent-gold);
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 30px;
+            font-family: 'Playfair Display', serif;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+        }
+
+        .label-to {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 5px;
+            font-style: italic;
+        }
+
+        .name-input {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid var(--accent-gold);
+            padding: 10px;
+            color: var(--paper-color);
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.6rem;
+            text-align: center;
+            width: 200px;
+            outline: none;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            transition: width 0.3s;
+        }
+
+        .name-input:focus {
+            width: 250px;
+            border-bottom-color: #fff;
+        }
+
+        .open-btn {
+            display: block;
+            margin: 20px auto 0;
+            padding: 10px 40px;
+            background: var(--accent-gold);
+            color: var(--bg-color);
+            border: none;
+            border-radius: 30px;
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+        }
+
+        .open-btn:hover {
+            transform: scale(1.05);
+            background: #e6c35c;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Mobile */
+        @media (max-width: 600px) {
+            :root {
+                --env-width: 90vw;
+                --env-height: 250px;
+            }
+
+            .letter-content {
+                font-size: 1.25rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <audio id="bg-music" loop>
+        <source src="backsound-jesuslovesme.mp3" type="audio/mpeg">
+    </audio>
+
+    <div class="container">
+        <div class="envelope-wrapper" id="envelopeWrapper">
+            <div class="envelope">
+
+                <!-- Flap (Top) -->
+                <div class="flap"></div>
+
+                <!-- Letter -->
+                <div class="letter" id="letter">
+                    <div class="letter-content" id="letterText"></div>
+                </div>
+
+                <!-- Pocket (Front Body) -->
+                <div class="pocket"></div>
+
+                <!-- Input Layer -->
+                <div class="input-container" id="inputContainer">
+                    <div class="label-from">From: God</div>
+                    <div class="label-to">To:</div>
+                    <input type="text" class="name-input" id="nameInput" placeholder="Your Name" autocomplete="off">
+                    <button class="open-btn" id="openBtn">Open</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const openBtn = document.getElementById('openBtn');
+        const nameInput = document.getElementById('nameInput');
+        const envelopeWrapper = document.getElementById('envelopeWrapper');
+        const letter = document.getElementById('letter');
+        const inputContainer = document.getElementById('inputContainer');
+        const letterText = document.getElementById('letterText');
+        const audio = document.getElementById('bg-music');
+
+        const messageTemplates = [
+            (name) => `My beloved child ${name},
+
+I know you. I know when you sit and when you rise; I perceive your thoughts from afar. You are hemmed in by Me, behind and before.
+
+You are fearfully and wonderfully made. Do not let your heart be troubled. In this vast world, you are never just a face in the crowd to Me—you are My masterpiece.
+
+When you feel weak, I am your strength. When you feel lost, I am your way. Rest in my love today, for it is unchanging and eternal.
+
+Forever yours,
+God`,
+
+            (name) => `Dearest ${name},
+
+I have loved you with an everlasting love. Before a single day of your life came to be, I saw you and smiled.
+
+Do not worry about tomorrow, for I hold your future in My hands. When you walk through the fire, you shall not be burned; when you pass through deep waters, I will be with you.
+
+Come to Me when you are weary, and I will give you rest. My grace is sufficient for you, and My power is made perfect in weakness.
+
+With infinite love,
+God`,
+
+            (name) => `My precious ${name},
+
+You are vital to Me. I created you with a purpose that only you can fulfill. Don't compare your path with others; I am writing a unique story just for you.
+
+If you ever feel alone, remember I am closer than your very breath. Call to Me, and I will answer.
+
+Be strong and courageous. Do not be afraid, do not be discouraged, for I, the Lord your God, will be with you wherever you go.
+
+Always by your side,
+God`,
+
+            (name) => `To my child ${name},
+
+Peace I leave with you; my peace I give you. I do not give to you as the world gives. Do not let your hearts be troubled and do not be afraid.
+
+You are seen. You are heard. You are deeply loved, not for what you do, but for who you are—My child.
+
+Keep your eyes on Me. I am your refuge and your fortress, your God, in whom you can trust.
+
+Love always,
+God`
+        ];
+
+        const openEnvelope = () => {
+            const name = nameInput.value.trim();
+            if (!name) {
+                // Simple shake effect?
+                nameInput.style.borderBottomColor = 'red';
+                setTimeout(() => nameInput.style.borderBottomColor = '#d4af37', 500);
+                return;
+            }
+
+            const displayName = name.charAt(0).toUpperCase() + name.slice(1);
+
+            // Randomly select a message
+            const randomIndex = Math.floor(Math.random() * messageTemplates.length);
+            const selectedMessage = messageTemplates[randomIndex](displayName);
+
+            // 1. Hide UI
+            inputContainer.classList.add('hidden');
+
+            // 2. Play Audio
+            audio.volume = 0.4;
+            audio.play().catch(console.warn);
+
+            // 3. Open Flap
+            setTimeout(() => {
+                envelopeWrapper.classList.add('open');
+            }, 100);
+
+            // 4. Eject Letter (Slide Up)
+            setTimeout(() => {
+                letter.classList.add('ejected');
+            }, 800);
+
+            // 5. Center Letter (Fixed Position)
+            setTimeout(() => {
+                // Remove 'ejected' to stop fighting transform? 
+                // No, add 'centered' which overrides with !important
+                letter.classList.remove('ejected'); // Clean transition
+                letter.classList.add('centered');
+            }, 1800); // 0.8s slide up + wait time
+
+            // 6. Start Typing
+            setTimeout(() => {
+                typeWriter(selectedMessage, 0);
+            }, 2800);
+        };
+
+        function typeWriter(text, i) {
+            if (i < text.length) {
+                const char = text.charAt(i);
+                letterText.innerHTML += (char === '\n') ? '<br>' : char;
+                // Auto scroll
+                letterText.scrollTop = letterText.scrollHeight;
+                setTimeout(() => typeWriter(text, i + 1), Math.random() * 50 + 30);
+            }
+        }
+
+        openBtn.addEventListener('click', openEnvelope);
+        nameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') openEnvelope();
+        });
+    </script>
+</body>
+
+</html>
