@@ -112,4 +112,4 @@ This project is open source and available for personal use. Feel free to fork an
 
 ---
 
-*Made with ❤️ by [elnoahcc](https://github.com/elnoahcc)*
+*Made with ❤️ by [nowahgit](https://github.com/nowahgit)*
